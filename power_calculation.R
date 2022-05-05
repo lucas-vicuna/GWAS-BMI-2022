@@ -17,4 +17,3 @@ H2 = 0.0070804356
 
 threshold = qchisq(alpha, df = 1, lower.tail = FALSE)
 power = pchisq(threshold, df = 1, lower.tail = FALSE, ncp = N * H2)
-power
