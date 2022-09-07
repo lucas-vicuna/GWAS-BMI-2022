@@ -1,0 +1,49 @@
+library(purrr)
+library(broom)
+library(readr)
+library(dplyr)
+
+args <- commandArgs(TRUE)
+h <- args[1] %>% as.numeric
+
+gen_snp <- function(N,seed=1155){
+  
+  set.seed(seed)
+  while(T){
+    u=runif(1)
+    q = qexp(p = u, rate = 3.041907)
+    if(q>0.01 & q<2) break}
+  
+  snp = rbinom(n = N, size = 2L, prob = q/2)
+  return(snp)
+}
+dfp <- function(df,dfcode, seed=1155){
+  
+  dfcode <- dfcode %>% mutate(snp=gen_snp(N=904,seed = seed))
+  df1 <- df %>% left_join(dfcode)
+  
+  p <- df1 %>%
+    split(.$orden) %>% 
+    map(~ lm(zBMI ~ snp, data = .)) %>%
+    map(tidy) %>%
+    map(~ filter(.,term=='snp')) %>% 
+    map_dbl('p.value')
+  
+  df2 <- tibble(orden=names(p), p=p)
+  return(df2)
+}
+
+df <- read_delim('~/proyectos/bmi/xAge/TramosxEdad.csv')
+df1 <- df %>% distinct(CODE)
+df2 <- df %>% select(CODE, orden, zBMI)
+
+n=609000
+semillas = seq(n*(h-1)+1,n*h)
+j=0
+
+for(i in semillas){
+  j=j+1
+  out <- dfp(df=df2, dfcode = df1, seed = i)
+  bind_cols(iter=i,out) %>% 
+    write_csv(paste0('~/proyectos/bmi/xAge/simulacion_part',h,'.csv'),append = T, col_names = ifelse(j==1,T,F))
+}
